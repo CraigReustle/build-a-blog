@@ -42,8 +42,7 @@ class Art(db.Model):
 class MainPage(Handler):
     def render_front(self, title="", art="", error=""):
         arts = db.GqlQuery("SELECT * FROM Art ORDER BY created DESC")
-
-        self.render("front.html", title=title, art=art, error=error, arts=arts)
+        self.render("frontpage.html", title=title, art=art, error=error, arts=arts)
 
     def get(self):
         self.render_front()
@@ -55,13 +54,43 @@ class MainPage(Handler):
         if title and art:
             a = Art(title=title, art=art)
             a.put()
+            a_id = a.key().id()
 
-            self.redirect("/")
+            self.redirect("/blog/"+str(a_id))
         else:
-            error = "we need both a title and some art!"
+            error = "We need both a title and a post!"
             self.render_front(title, art, error)
+
+class recent5(Handler):
+    def render_recent5(self, title="", art="", error=""):
+        arts = db.GqlQuery("SELECT * FROM Art ORDER BY created DESC LIMIT 5")
+        self.render("recent5.html", title=title, art=art, error=error, arts=arts)
+
+    def get(self):
+        self.render_recent5()
+
+    def post(self):
+        self.render_recent5()
+
+class ViewPostHandler(Handler):
+
+    def render_blogpost(self, art):
+        self.render("blogpost.html", art=art)
+
+    def get(self,id):
+        art = Art.get_by_id(int(id))
+        self.render_blogpost(art)
+
+class RedirectToBlog(Handler):
+
+    def get(self):
+        self.redirect("/blog")
 
 
 app = webapp2.WSGIApplication([
-    ('/', MainPage)
+    ('/newpost', MainPage),
+    ('/blog', recent5),
+    webapp2.Route('/blog/<id:\d+>', ViewPostHandler),
+    ('/', RedirectToBlog)
+
 ], debug=True)
